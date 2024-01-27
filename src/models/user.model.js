@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     phone: {
-        type: Number,
+        type: String,
         unique: true,
         required: true,
     },
@@ -14,19 +14,13 @@ const UserSchema = new mongoose.Schema({
         type: String,
         unique: true,
     },
-})
-
-const NewTempUserSchema = new mongoose.Schema({
-    ...UserSchema.obj,
-    otp: {
-        type: Number,
-        required: true,
+    password: {
+        type: String,
+        required: true
     }
 })
 
 UserSchema.index({ phone: 1 })
-
-const NewTempUserModel = mongoose.model('NewTempUsers', NewTempUserSchema)
 const UserModel = mongoose.model('Users', UserSchema)
 
 // UserModel.createIndexes((err) => {
@@ -38,5 +32,4 @@ const UserModel = mongoose.model('Users', UserSchema)
 // })
 module.exports = {
     UserModel,
-    NewTempUserModel
 }

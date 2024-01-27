@@ -1,22 +1,23 @@
 const { UserModel } = require('../../../models')
-const { NewTempUserModel } = require('../../../models/user.model')
 const isValid_Mobile_Number = require('../../../utils/validatePhone')
 const sendOtpHelper = require('./otp.helper')
+const { getValue, setValueWithExp, remove: removeFromRedis } = require('../../../redis-utils')
 
 const attemptSignIn = async (
     name,
     phone,
-    email
+    email,
+    password
 ) => {
     let response = {
         statusCode: 500
     }
-    
-    if (!isValid_Mobile_Number(phone)) {
-        response.statusCode = 300
-        response.message = 'Invalid Phone number'
-        return response
-    }
+
+    // if (!isValid_Mobile_Number(phone)) { //phone number validation removed for now 
+    //     response.statusCode = 300
+    //     response.message = 'Invalid Phone number'
+    //     return response
+    // }
 
     try {
         const exists = await UserModel.findOne({ phone })
@@ -24,14 +25,9 @@ const attemptSignIn = async (
             console.log('user does not exist so proceding with creating a new user temp user')
             const otp = Math.floor(1000 + Math.random() * 9000);
             sendOtpHelper(phone, otp);
-            const newUser = await NewTempUserModel.create({
-                name,
-                phone,
-                email,
-                otp
-            });
+            await setValueWithExp(phone, JSON.stringify({ name, phone, email, otp, password }), 180)
             response.statusCode = 200;
-            response.message = 'User Created With ' + JSON.stringify(newUser);
+            response.message = 'Register with otp'
             return response;
         }
         response.message = 'User Already Exists'
@@ -42,26 +38,36 @@ const attemptSignIn = async (
     }
 }
 
-const sendOtp = async (phone) => {
-    //here in the temp table also add the temp otp created
-    //write the api call for twilio
-}
-
 const registerUser = async (
-    name,
     phone,
-    email
+    otp
 ) => {
+    let response = {
+        statusCode: 500,
+        message: ''
+    }
     try {
-        const newUser = new UserModel({ name, phone, email })
-        const saved = await newUser.save()
-        console.log('New User added to the data set', saved)
-        return saved
+        const userInRedis = await getValue(phone)
+        if (!userInRedis) {
+            response.message = 'OTP Verification Failed'
+            return response
+        }
+        const { name, email, otp: realOtp, password } = JSON.parse(userInRedis)
+        if (realOtp != otp) {
+            response.message = 'Wrong Otp'
+            return response
+        }
+        await removeFromRedis(phone)
+        const newUser = new UserModel({ name, phone, email, password })
+        await newUser.save()
+        response.message = 'Success in Sign Up'
+        return response
     } catch (err) {
-        return false
+        return err
     }
 }
 
 module.exports = {
-    attemptSignIn
+    attemptSignIn,
+    registerUser
 }

@@ -1,19 +1,24 @@
-const { attemptSignIn } = require('../helper/signin.helper')
+const { attemptSignIn, registerUser } = require('../helper/signin.helper')
 
 const signInForm = async (req, res) => {
     const {
         name,
         email = 'NA',
-        phone
+        phone,
+        password
     } = req.body
-    const phoneNumber = Number(phone)
-    const response = await attemptSignIn(name,phoneNumber,email)
+    const response = await attemptSignIn(name, phone, email, password)
     res.send(response)
 }
 
-const validateOtp = (req, res) => {
+const validateOtp = async (req, res) => {
     console.log('in signin validate otpreqest')
-    res.send('')
+    const {
+        phone,
+        otp
+    } = req.body
+    const response = await registerUser(phone, otp)
+    res.send(response)
 }
 
-module.exports =  { signInForm, validateOtp }
+module.exports = { signInForm, validateOtp }
