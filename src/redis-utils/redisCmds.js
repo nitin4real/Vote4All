@@ -19,5 +19,5 @@ module.exports = {
     getValue,
     setValue,
     setValueWithExp,
-    remove
+    remove,
 }
